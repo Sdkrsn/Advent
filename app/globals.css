@@ -10,6 +10,9 @@
   --gold: #E8A93D;
   --gold-deep: #B87A12;
   --gold-line: #EED9A0;
+  --green: #7C9A4A;
+  --line: #EDE0B8;
+  --shadow: rgba(120, 90, 20, 0.12);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -23,6 +26,9 @@
     --gold: #F0B84C;
     --gold-deep: #F0B84C;
     --gold-line: #4A3F22;
+    --green: #9CC26A;
+    --line: #453B22;
+    --shadow: rgba(0, 0, 0, 0.4);
   }
 }
 
@@ -34,4 +40,41 @@ html, body {
   background: var(--cream);
   color: var(--ink);
   font-family: 'Figtree', system-ui, sans-serif;
+  margin: 0;
 }
+
+.tile {
+  aspect-ratio: 1;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  position: relative;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+.tile .n { font-size: 15px; font-weight: 700; color: var(--ink-faint); font-variant-numeric: tabular-nums; }
+.tile .d { font-size: 9px; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.04em; }
+
+.tile.today { border-color: var(--gold-deep); background: var(--panel-2); box-shadow: 0 0 0 2px var(--gold) inset; cursor: pointer; }
+.tile.today .n { color: var(--gold-deep); }
+.tile.today:hover { transform: translateY(-2px); box-shadow: 0 6px 14px var(--shadow), 0 0 0 2px var(--gold) inset; }
+
+.tile.opened { cursor: pointer; background: var(--cream); border-color: var(--gold-line); }
+.tile.opened .n { color: var(--ink-soft); }
+.tile.opened::after { content: ""; position: absolute; top: 6px; right: 6px; width: 6px; height: 6px; border-radius: 50%; background: var(--green); }
+.tile.opened:hover { transform: translateY(-2px); box-shadow: 0 6px 14px var(--shadow); }
+
+.tile.locked .n { color: var(--ink-faint); }
+.tile.locked .d { color: var(--ink-faint); }
+
+.tile.gift { border-color: var(--gold-deep); }
+.tile.gift.locked { background: var(--panel-2); }
+.tile.gift .n { color: var(--gold-deep); }
+.tile.gift.locked .n { color: var(--gold-deep); opacity: 0.55; }
+
+.tile.finale { border-color: var(--gold-deep); border-width: 2px; }
+.tile.finale .n { color: var(--gold-deep); }

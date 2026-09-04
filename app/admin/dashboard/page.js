@@ -2,79 +2,69 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-
-const DAY_LABELS = {
-  mon: "Monday",
-  tue: "Tuesday",
-  wed: "Wednesday",
-  thu: "Thursday",
-  fri: "Friday",
-  sat: "Saturday",
-};
+import { nowInTz, isSundayDate, addDaysToDateStr } from "@/lib/time";
 
 export default function Dashboard() {
   const router = useRouter();
-  const [data, setData] = useState(null);
-  const [draft, setDraft] = useState({});
-  const [status, setStatus] = useState("");
+  const [date, setDate] = useState("");
+  const [entryData, setEntryData] = useState(null);
+  const [text, setText] = useState("");
   const [giftType, setGiftType] = useState("text");
-  const [giftText, setGiftText] = useState("");
   const [giftCaption, setGiftCaption] = useState("");
   const [giftFile, setGiftFile] = useState(null);
+  const [status, setStatus] = useState("");
 
-  async function load() {
-    const res = await fetch("/api/admin/data");
+  useEffect(() => {
+    const today = nowInTz().dateStr;
+    setDate(today);
+  }, []);
+
+  async function load(d) {
+    const res = await fetch(`/api/admin/entry?date=${d}`);
     if (res.status === 401) {
       router.push("/admin");
       return;
     }
     const json = await res.json();
-    setData(json);
-    setDraft(json.draft);
-    if (json.draftGift) {
-      setGiftType(json.draftGift.type || "text");
-      setGiftText(json.draftGift.text || "");
+    setEntryData(json);
+    if (json.draft) {
+      if (json.draft.kind === "gift") {
+        setGiftType(json.draft.giftType || "text");
+        setGiftCaption(json.draft.text || "");
+      } else {
+        setText(json.draft.text || "");
+      }
+    } else {
+      setText("");
     }
   }
 
   useEffect(() => {
-    load();
-  }, []);
+    if (date) load(date);
+  }, [date]);
 
-  function updateDay(day, value) {
-    setDraft((d) => ({ ...d, [day]: value }));
-  }
-
-  async function saveDrafts() {
+  async function saveDraft() {
     setStatus("saving...");
-    await fetch("/api/admin/save", {
+    if (isSundayDate(date) && giftType !== "text-msg-fallback") {
+      // handled by gift save
+    }
+    await fetch("/api/admin/entry", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ messages: draft }),
+      body: JSON.stringify({ date, text }),
     });
     setStatus("draft saved");
     setTimeout(() => setStatus(""), 1500);
-  }
-
-  async function publishAll() {
-    setStatus("publishing...");
-    await fetch("/api/admin/save", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ messages: draft, publish: true }),
-    });
-    setStatus("live for her now");
-    setTimeout(() => setStatus(""), 2000);
-    load();
+    load(date);
   }
 
   async function saveGiftDraft() {
     setStatus("saving gift...");
     if (giftType === "text") {
-      await fetch("/api/admin/gift", {
+      await fetch("/api/admin/entry", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: giftText }),
+        body: JSON.stringify({ date, giftType: "text", text: giftCaption }),
       });
     } else {
       if (!giftFile) {
@@ -82,22 +72,27 @@ export default function Dashboard() {
         return;
       }
       const form = new FormData();
+      form.append("date", date);
       form.append("file", giftFile);
-      form.append("type", giftType);
+      form.append("giftType", giftType);
       form.append("caption", giftCaption);
-      await fetch("/api/admin/gift", { method: "POST", body: form });
+      await fetch("/api/admin/entry", { method: "POST", body: form });
     }
     setStatus("gift draft saved (not live yet)");
     setTimeout(() => setStatus(""), 2000);
-    load();
+    load(date);
   }
 
-  async function publishGift() {
-    setStatus("publishing gift...");
-    await fetch("/api/admin/gift", { method: "PUT" });
-    setStatus("gift is live");
+  async function publish() {
+    setStatus("publishing...");
+    await fetch("/api/admin/entry", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ date }),
+    });
+    setStatus("live for her now");
     setTimeout(() => setStatus(""), 2000);
-    load();
+    load(date);
   }
 
   async function logout() {
@@ -105,148 +100,123 @@ export default function Dashboard() {
     router.push("/admin");
   }
 
-  if (!data) {
+  if (!date || !entryData) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--cream)" }}>
+      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--cream)" }}>
         loading...
       </div>
     );
   }
 
+  const sunday = isSundayDate(date);
+
   return (
-    <div className="min-h-screen px-6 py-10" style={{ background: "var(--cream)", color: "var(--ink)" }}>
-      <div className="max-w-2xl mx-auto flex flex-col gap-8">
-        <div className="flex items-center justify-between">
-          <h1 className="text-xl font-bold">admin</h1>
-          <button onClick={logout} className="text-sm underline" style={{ color: "var(--ink-soft)" }}>
+    <div style={{ minHeight: "100vh", padding: "40px 24px", background: "var(--cream)", color: "var(--ink)" }}>
+      <div style={{ maxWidth: 640, margin: "0 auto", display: "flex", flexDirection: "column", gap: 24 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <h1 style={{ fontSize: 20, fontWeight: 700 }}>admin</h1>
+          <button onClick={logout} style={{ fontSize: 14, textDecoration: "underline", color: "var(--ink-soft)", background: "none", border: "none", cursor: "pointer" }}>
             log out
           </button>
         </div>
 
-        <div
-          className="rounded-2xl p-6 flex flex-col gap-5"
-          style={{ background: "var(--panel)", border: "1px solid var(--gold-line)" }}
-        >
-          <h2 className="font-semibold">daily messages (Mon–Sat)</h2>
-          {Object.keys(DAY_LABELS).map((day) => (
-            <div key={day} className="flex flex-col gap-1">
-              <label className="text-xs font-semibold" style={{ color: "var(--ink-soft)" }}>
-                {DAY_LABELS[day]}
-              </label>
-              <textarea
-                value={draft[day] || ""}
-                onChange={(e) => updateDay(day, e.target.value)}
-                rows={2}
-                className="rounded-lg px-3 py-2 border outline-none resize-none"
-                style={{ borderColor: "var(--gold-line)", background: "var(--cream)", color: "var(--ink)" }}
-              />
-            </div>
-          ))}
-          <div className="flex gap-3">
-            <button
-              onClick={saveDrafts}
-              className="rounded-lg px-4 py-2 font-semibold border"
-              style={{ borderColor: "var(--gold-line)" }}
-            >
-              save draft
-            </button>
-            <button
-              onClick={publishAll}
-              className="rounded-lg px-4 py-2 font-semibold"
-              style={{ background: "var(--gold)", color: "#2E2200" }}
-            >
-              publish (she sees this now)
-            </button>
-          </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <button onClick={() => setDate(addDaysToDateStr(date, -1))} style={{ padding: "6px 12px", borderRadius: 8, border: "1px solid var(--gold-line)", background: "var(--panel)", cursor: "pointer" }}>
+            ←
+          </button>
+          <input
+            type="date"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+            style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid var(--gold-line)", background: "var(--panel)", color: "var(--ink)" }}
+          />
+          <button onClick={() => setDate(addDaysToDateStr(date, 1))} style={{ padding: "6px 12px", borderRadius: 8, border: "1px solid var(--gold-line)", background: "var(--panel)", cursor: "pointer" }}>
+            →
+          </button>
+          <span style={{ fontSize: 13, color: "var(--ink-soft)" }}>{sunday ? "Sunday — gift day" : "daily message"}</span>
         </div>
 
-        <div
-          className="rounded-2xl p-6 flex flex-col gap-4"
-          style={{ background: "var(--panel)", border: "1px solid var(--gold-line)" }}
-        >
-          <h2 className="font-semibold">sunday gift</h2>
-          <p className="text-xs" style={{ color: "var(--ink-soft)" }}>
-            Save it now, it stays hidden from her until Sunday 7pm. Publish it whenever you're ready — it
-            still won't show early.
-          </p>
-
-          <div className="flex gap-2 flex-wrap">
-            {["text", "image", "audio", "video", "pdf"].map((t) => (
-              <button
-                key={t}
-                onClick={() => setGiftType(t)}
-                className="text-xs px-3 py-1 rounded-full border font-semibold"
-                style={{
-                  borderColor: "var(--gold-line)",
-                  background: giftType === t ? "var(--gold)" : "transparent",
-                  color: giftType === t ? "#2E2200" : "var(--ink)",
-                }}
-              >
-                {t}
-              </button>
-            ))}
-          </div>
-
-          {giftType === "text" ? (
-            <textarea
-              value={giftText}
-              onChange={(e) => setGiftText(e.target.value)}
-              rows={4}
-              placeholder="write the letter here"
-              className="rounded-lg px-3 py-2 border outline-none resize-none"
-              style={{ borderColor: "var(--gold-line)", background: "var(--cream)", color: "var(--ink)" }}
-            />
-          ) : (
-            <>
-              <input
-                type="file"
-                onChange={(e) => setGiftFile(e.target.files[0])}
-                className="text-sm"
-              />
-              <input
-                type="text"
+        {sunday ? (
+          <div style={{ background: "var(--panel)", border: "1px solid var(--gold-line)", borderRadius: 16, padding: 24, display: "flex", flexDirection: "column", gap: 16 }}>
+            <h2 style={{ fontWeight: 600 }}>gift for {date}</h2>
+            <p style={{ fontSize: 12, color: "var(--ink-soft)" }}>
+              Prep this any time — it stays hidden from her until this date, 7pm.
+            </p>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              {["text", "image", "audio", "video", "pdf"].map((t) => (
+                <button
+                  key={t}
+                  onClick={() => setGiftType(t)}
+                  style={{
+                    fontSize: 12, padding: "4px 12px", borderRadius: 999, border: "1px solid var(--gold-line)",
+                    background: giftType === t ? "var(--gold)" : "transparent",
+                    color: giftType === t ? "#2E2200" : "var(--ink)", cursor: "pointer",
+                  }}
+                >
+                  {t}
+                </button>
+              ))}
+            </div>
+            {giftType === "text" ? (
+              <textarea
                 value={giftCaption}
                 onChange={(e) => setGiftCaption(e.target.value)}
-                placeholder="optional caption/message"
-                className="rounded-lg px-3 py-2 border outline-none"
-                style={{ borderColor: "var(--gold-line)", background: "var(--cream)", color: "var(--ink)" }}
+                rows={5}
+                placeholder="write the letter here"
+                style={{ borderRadius: 8, padding: "8px 12px", border: "1px solid var(--gold-line)", background: "var(--cream)", color: "var(--ink)", resize: "none" }}
               />
-            </>
-          )}
-
-          <div className="flex gap-3">
-            <button
-              onClick={saveGiftDraft}
-              className="rounded-lg px-4 py-2 font-semibold border"
-              style={{ borderColor: "var(--gold-line)" }}
-            >
-              save draft
-            </button>
-            <button
-              onClick={publishGift}
-              className="rounded-lg px-4 py-2 font-semibold"
-              style={{ background: "var(--gold)", color: "#2E2200" }}
-            >
-              publish gift
-            </button>
-          </div>
-
-          {data.liveGift ? (
-            <div className="text-xs mt-2" style={{ color: "var(--ink-soft)" }}>
-              current live gift: {data.liveGift.type} {data.liveGift.fileName ? `(${data.liveGift.fileName})` : ""}
+            ) : (
+              <>
+                <input type="file" onChange={(e) => setGiftFile(e.target.files[0])} />
+                <input
+                  type="text"
+                  value={giftCaption}
+                  onChange={(e) => setGiftCaption(e.target.value)}
+                  placeholder="optional caption/message"
+                  style={{ borderRadius: 8, padding: "8px 12px", border: "1px solid var(--gold-line)", background: "var(--cream)", color: "var(--ink)" }}
+                />
+              </>
+            )}
+            <div style={{ display: "flex", gap: 12 }}>
+              <button onClick={saveGiftDraft} style={{ padding: "8px 16px", borderRadius: 8, border: "1px solid var(--gold-line)", background: "transparent", cursor: "pointer", fontWeight: 600 }}>
+                save draft
+              </button>
+              <button onClick={publish} style={{ padding: "8px 16px", borderRadius: 8, background: "var(--gold)", color: "#2E2200", border: "none", cursor: "pointer", fontWeight: 600 }}>
+                publish (she sees this at 7pm)
+              </button>
             </div>
-          ) : (
-            <div className="text-xs mt-2" style={{ color: "var(--ink-soft)" }}>
-              no gift published yet
-            </div>
-          )}
-        </div>
-
-        {status ? (
-          <div className="text-sm font-semibold" style={{ color: "var(--gold-deep)" }}>
-            {status}
+            {entryData.live?.kind === "gift" ? (
+              <div style={{ fontSize: 12, color: "var(--ink-soft)" }}>
+                currently live: {entryData.live.giftType} {entryData.live.fileName ? `(${entryData.live.fileName})` : ""}
+              </div>
+            ) : (
+              <div style={{ fontSize: 12, color: "var(--ink-soft)" }}>nothing published for this date yet</div>
+            )}
           </div>
-        ) : null}
+        ) : (
+          <div style={{ background: "var(--panel)", border: "1px solid var(--gold-line)", borderRadius: 16, padding: 24, display: "flex", flexDirection: "column", gap: 16 }}>
+            <h2 style={{ fontWeight: 600 }}>message for {date}</h2>
+            <textarea
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              rows={5}
+              style={{ borderRadius: 8, padding: "8px 12px", border: "1px solid var(--gold-line)", background: "var(--cream)", color: "var(--ink)", resize: "none" }}
+            />
+            <div style={{ display: "flex", gap: 12 }}>
+              <button onClick={saveDraft} style={{ padding: "8px 16px", borderRadius: 8, border: "1px solid var(--gold-line)", background: "transparent", cursor: "pointer", fontWeight: 600 }}>
+                save draft
+              </button>
+              <button onClick={publish} style={{ padding: "8px 16px", borderRadius: 8, background: "var(--gold)", color: "#2E2200", border: "none", cursor: "pointer", fontWeight: 600 }}>
+                publish (she sees this at 7pm)
+              </button>
+            </div>
+            <div style={{ fontSize: 12, color: "var(--ink-soft)" }}>
+              currently live: {entryData.live?.text || "(default message will show)"}
+            </div>
+          </div>
+        )}
+
+        {status ? <div style={{ fontWeight: 600, color: "var(--gold-deep)" }}>{status}</div> : null}
       </div>
     </div>
   );
