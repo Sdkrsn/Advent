@@ -12,23 +12,27 @@
   --gold-line: #EED9A0;
   --green: #7C9A4A;
   --line: #EDE0B8;
-  --shadow: rgba(120, 90, 20, 0.12);
+  --shadow: rgba(120, 90, 20, 0.14);
+  --blob-1: rgba(232, 169, 61, 0.16);
+  --blob-2: rgba(124, 154, 74, 0.10);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --cream: #221E14;
-    --panel: #2C2717;
-    --panel-2: #38301A;
+    --cream: #1B1810;
+    --panel: #262013;
+    --panel-2: #332A16;
     --ink: #F3EAD2;
     --ink-soft: #C9BB90;
     --ink-faint: #6E624A;
     --gold: #F0B84C;
-    --gold-deep: #F0B84C;
+    --gold-deep: #F5C562;
     --gold-line: #4A3F22;
     --green: #9CC26A;
-    --line: #453B22;
-    --shadow: rgba(0, 0, 0, 0.4);
+    --line: #3C331D;
+    --shadow: rgba(0, 0, 0, 0.45);
+    --blob-1: rgba(240, 184, 76, 0.10);
+    --blob-2: rgba(156, 194, 106, 0.06);
   }
 }
 
@@ -41,11 +45,71 @@ html, body {
   color: var(--ink);
   font-family: 'Figtree', system-ui, sans-serif;
   margin: 0;
+  -webkit-font-smoothing: antialiased;
 }
+
+body {
+  min-height: 100vh;
+  background-image:
+    radial-gradient(600px circle at 8% 0%, var(--blob-1), transparent 60%),
+    radial-gradient(700px circle at 100% 20%, var(--blob-2), transparent 55%),
+    radial-gradient(500px circle at 50% 100%, var(--blob-1), transparent 60%);
+  background-attachment: fixed;
+  position: relative;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.35;
+  background-image: radial-gradient(var(--ink-faint) 0.6px, transparent 0.6px);
+  background-size: 22px 22px;
+  mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, black, transparent 70%);
+  z-index: 0;
+}
+
+::selection {
+  background: var(--gold);
+  color: #2E2200;
+}
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--gold-line); border-radius: 10px; border: 2px solid var(--cream); }
+::-webkit-scrollbar-thumb:hover { background: var(--gold); }
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes popIn {
+  from { opacity: 0; transform: translateY(16px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes shimmer {
+  0% { background-position: -120% 0; }
+  100% { background-position: 220% 0; }
+}
+
+@keyframes softGlow {
+  0%, 100% { box-shadow: 0 0 0 2px var(--gold) inset, 0 4px 16px var(--shadow); }
+  50% { box-shadow: 0 0 0 2px var(--gold) inset, 0 6px 22px var(--shadow); }
+}
+
+.fade-in-up { animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) both; }
 
 .tile {
   aspect-ratio: 1;
-  border-radius: 12px;
+  border-radius: 14px;
   border: 1px solid var(--line);
   background: var(--panel);
   display: flex;
@@ -54,27 +118,56 @@ html, body {
   justify-content: center;
   gap: 3px;
   position: relative;
-  transition: transform 0.12s ease, box-shadow 0.12s ease;
+  transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+  animation: fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
-.tile .n { font-size: 15px; font-weight: 700; color: var(--ink-faint); font-variant-numeric: tabular-nums; }
-.tile .d { font-size: 9px; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.04em; }
+.tile .n { font-size: 15px; font-weight: 700; color: var(--ink-faint); font-variant-numeric: tabular-nums; transition: color 0.18s ease; }
+.tile .d { font-size: 9px; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.05em; }
 
-.tile.today { border-color: var(--gold-deep); background: var(--panel-2); box-shadow: 0 0 0 2px var(--gold) inset; cursor: pointer; }
+.tile.today {
+  border-color: var(--gold-deep);
+  background: linear-gradient(155deg, var(--panel-2), var(--panel));
+  cursor: pointer;
+  animation: fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) both, softGlow 2.6s ease-in-out infinite;
+}
 .tile.today .n { color: var(--gold-deep); }
-.tile.today:hover { transform: translateY(-2px); box-shadow: 0 6px 14px var(--shadow), 0 0 0 2px var(--gold) inset; }
+.tile.today:hover { transform: translateY(-3px) scale(1.04); }
 
 .tile.opened { cursor: pointer; background: var(--cream); border-color: var(--gold-line); }
 .tile.opened .n { color: var(--ink-soft); }
-.tile.opened::after { content: ""; position: absolute; top: 6px; right: 6px; width: 6px; height: 6px; border-radius: 50%; background: var(--green); }
-.tile.opened:hover { transform: translateY(-2px); box-shadow: 0 6px 14px var(--shadow); }
+.tile.opened::after {
+  content: "";
+  position: absolute; top: 6px; right: 6px;
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--green) 22%, transparent);
+}
+.tile.opened:hover { transform: translateY(-3px) scale(1.04); box-shadow: 0 8px 18px var(--shadow); }
 
 .tile.locked .n { color: var(--ink-faint); }
 .tile.locked .d { color: var(--ink-faint); }
+.tile.locked { opacity: 0.72; }
 
-.tile.gift { border-color: var(--gold-deep); }
-.tile.gift.locked { background: var(--panel-2); }
-.tile.gift .n { color: var(--gold-deep); }
-.tile.gift.locked .n { color: var(--gold-deep); opacity: 0.55; }
+.tile.gift {
+  border-color: var(--gold-deep);
+  background: linear-gradient(155deg, var(--panel-2), var(--panel) 70%);
+}
+.tile.gift.locked {
+  background:
+    linear-gradient(155deg, var(--panel-2), var(--panel) 70%),
+    linear-gradient(100deg, transparent 20%, rgba(255,255,255,0.35) 35%, transparent 50%);
+  background-size: 100% 100%, 200% 100%;
+  animation: fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) both, shimmer 4.5s ease-in-out infinite;
+}
+.tile.gift .n { color: var(--gold-deep); font-weight: 800; }
+.tile.gift.locked .n { color: var(--gold-deep); opacity: 0.6; }
+.tile.gift:not(.locked):hover { transform: translateY(-3px) scale(1.04); box-shadow: 0 10px 22px var(--shadow); }
 
-.tile.finale { border-color: var(--gold-deep); border-width: 2px; }
+.tile.finale {
+  border-color: var(--gold-deep);
+  border-width: 2px;
+  background: linear-gradient(160deg, var(--panel-2), var(--panel));
+}
 .tile.finale .n { color: var(--gold-deep); }
+.tile.finale.locked { animation: fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.tile.finale:not(.locked) { animation: fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) both, softGlow 2.6s ease-in-out infinite; }

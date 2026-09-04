@@ -94,6 +94,19 @@ export default function Home() {
     return Math.max(0, Math.round((b - a) / 86400000));
   }, [today]);
 
+  const progress = useMemo(() => {
+    if (!today) return 0;
+    const [y1, m1, d1] = START_DATE.split("-").map(Number);
+    const [y2, m2, d2] = EXAM_DATE.split("-").map(Number);
+    const [y3, m3, d3] = today.split("-").map(Number);
+    const a = Date.UTC(y1, m1 - 1, d1);
+    const b = Date.UTC(y2, m2 - 1, d2);
+    const c = Date.UTC(y3, m3 - 1, d3);
+    const total = b - a;
+    const done = Math.min(Math.max(c - a, 0), total);
+    return total > 0 ? Math.round((done / total) * 100) : 0;
+  }, [today]);
+
   const months = useMemo(() => {
     const byMonth = {};
     const order = [];
@@ -146,18 +159,26 @@ export default function Home() {
   if (!today) return null;
 
   return (
-    <div style={{ minHeight: "100vh", paddingBottom: 60 }}>
+    <div style={{ minHeight: "100vh", paddingBottom: 60, position: "relative", zIndex: 1 }}>
       <div style={{ maxWidth: 880, margin: "0 auto", padding: "44px 24px 0" }}>
         <div
           onClick={handleSecretTap}
-          style={{ fontSize: 12, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--ink-soft)", fontWeight: 700, marginBottom: 10, width: "fit-content", cursor: "default", userSelect: "none" }}
+          style={{ fontSize: 12, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--ink-soft)", fontWeight: 700, marginBottom: 10, width: "fit-content", cursor: "default", userSelect: "none" }}
         >
-          today
+          ✦ today
         </div>
 
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 28, alignItems: "flex-end", justifyContent: "space-between", paddingBottom: 28, borderBottom: "1px solid var(--line)" }}>
-          <div style={{ display: "flex", alignItems: "baseline", gap: 14 }}>
-            <div style={{ fontFamily: "Fraunces, Georgia, serif", fontWeight: 600, fontSize: 76, lineHeight: 1, color: "var(--gold-deep)", fontVariantNumeric: "tabular-nums" }}>
+        <div className="fade-in-up" style={{ display: "flex", flexWrap: "wrap", gap: 28, alignItems: "flex-end", justifyContent: "space-between", paddingBottom: 26 }}>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 16 }}>
+            <div
+              style={{
+                fontFamily: "Fraunces, Georgia, serif", fontWeight: 600, fontSize: 84, lineHeight: 1,
+                fontVariantNumeric: "tabular-nums",
+                backgroundImage: "linear-gradient(160deg, var(--gold-deep), var(--gold))",
+                WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent",
+                filter: "drop-shadow(0 2px 10px var(--shadow))",
+              }}
+            >
               {daysLeft}
             </div>
             <div style={{ fontSize: 16, color: "var(--ink-soft)", maxWidth: 220, lineHeight: 1.4 }}>
@@ -165,28 +186,41 @@ export default function Home() {
             </div>
           </div>
           <div style={{ textAlign: "right", fontSize: 14, color: "var(--ink-soft)", lineHeight: 1.6 }}>
-            exam day<br /><b style={{ color: "var(--ink)" }}>Monday, December 14, 2026</b>
+            exam day<br /><b style={{ color: "var(--ink)", fontFamily: "Fraunces, Georgia, serif", fontSize: 15 }}>Monday, December 14, 2026</b>
           </div>
         </div>
 
-        <div style={{ marginTop: 28, background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 16, padding: "20px 22px" }}>
-          <h2 style={{ fontFamily: "Fraunces, Georgia, serif", fontWeight: 600, fontSize: 17, margin: "0 0 10px" }}>how this works</h2>
-          <ul style={{ margin: 0, paddingLeft: 20, display: "flex", flexDirection: "column", gap: 7 }}>
-            <li style={{ fontSize: 14, lineHeight: 1.55 }}>a new box unlocks every day at <b style={{ color: "var(--gold-deep)" }}>7pm</b> — open it whenever you want after that</li>
-            <li style={{ fontSize: 14, lineHeight: 1.55 }}>every <b style={{ color: "var(--gold-deep)" }}>Sunday</b> the box turns gold — that one's a real gift, not just a note</li>
-            <li style={{ fontSize: 14, lineHeight: 1.55 }}>the very last box opens on exam morning, December 14</li>
+        <div className="fade-in-up" style={{ height: 6, borderRadius: 999, background: "var(--panel-2)", overflow: "hidden", border: "1px solid var(--line)" }}>
+          <div
+            style={{
+              height: "100%", width: `${progress}%`, borderRadius: 999,
+              background: "linear-gradient(90deg, var(--gold-deep), var(--gold))",
+              boxShadow: "0 0 10px var(--gold)",
+              transition: "width 0.8s cubic-bezier(0.16, 1, 0.3, 1)",
+            }}
+          />
+        </div>
+        <div className="fade-in-up" style={{ marginTop: 30, background: "linear-gradient(160deg, var(--panel), var(--panel-2))", border: "1px solid var(--gold-line)", borderRadius: 18, padding: "22px 24px", boxShadow: "0 8px 24px var(--shadow)" }}>
+          <h2 style={{ fontFamily: "Fraunces, Georgia, serif", fontWeight: 600, fontSize: 18, margin: "0 0 12px", display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ color: "var(--gold-deep)" }}>◆</span> how this works
+          </h2>
+          <ul style={{ margin: 0, paddingLeft: 20, display: "flex", flexDirection: "column", gap: 8 }}>
+            <li style={{ fontSize: 14, lineHeight: 1.6 }}>a new box unlocks every day at <b style={{ color: "var(--gold-deep)" }}>7pm</b> — open it whenever you want after that</li>
+            <li style={{ fontSize: 14, lineHeight: 1.6 }}>every <b style={{ color: "var(--gold-deep)" }}>Sunday</b> the box turns gold — that one's a real gift, not just a note</li>
+            <li style={{ fontSize: 14, lineHeight: 1.6 }}>the very last box opens on exam morning, December 14</li>
           </ul>
         </div>
 
-        {months.map(({ key, list }) => {
+        {months.map(({ key, list }, monthIdx) => {
           const sample = list[0];
           const { y, m } = partsOf(sample.dateStr);
           return (
-            <div key={key} style={{ marginTop: 38 }}>
-              <div style={{ fontFamily: "Fraunces, Georgia, serif", fontWeight: 600, fontSize: 19, marginBottom: 14, display: "flex", alignItems: "baseline", gap: 10 }}>
+            <div key={key} className="fade-in-up" style={{ marginTop: 38, animationDelay: `${Math.min(monthIdx * 0.05, 0.3)}s` }}>
+              <div style={{ fontFamily: "Fraunces, Georgia, serif", fontWeight: 600, fontSize: 20, marginBottom: 14, display: "flex", alignItems: "baseline", gap: 10 }}>
                 {MONTH_NAMES[m - 1]} <span style={{ fontFamily: "Figtree, sans-serif", fontWeight: 400, fontSize: 13, color: "var(--ink-faint)" }}>{y}</span>
+                <span style={{ flex: 1, height: 1, background: "var(--line)" }} />
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(62px, 1fr))", gap: 8 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(62px, 1fr))", gap: 9 }}>
                 {list.map((d) => {
                   const pastOrToday = d.dateStr <= today;
                   const isToday = d.dateStr === today;
@@ -198,10 +232,12 @@ export default function Home() {
                   else if (isToday) cls.push("today");
                   else if (isOpened) cls.push("opened");
                   const { d: dayNum } = partsOf(d.dateStr);
+                  const { d: idxInMonth } = { d: list.indexOf(d) };
                   return (
                     <div
                       key={d.dateStr}
                       className={cls.join(" ")}
+                      style={{ animationDelay: `${Math.min(idxInMonth * 0.012, 0.4)}s` }}
                       onClick={pastOrToday ? () => openDay(d) : undefined}
                     >
                       <div className="n">{dayNum}</div>
@@ -214,32 +250,52 @@ export default function Home() {
           );
         })}
 
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 16, marginTop: 28, fontSize: 12, color: "var(--ink-soft)" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}><span style={{ width: 10, height: 10, borderRadius: "50%", border: "1.5px solid var(--line)", background: "var(--panel)" }} />locked</div>
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}><span style={{ width: 10, height: 10, borderRadius: "50%", border: "1.5px solid var(--gold-deep)", background: "var(--panel-2)" }} />today</div>
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}><span style={{ width: 10, height: 10, borderRadius: "50%", border: "1.5px solid var(--gold-line)", background: "var(--cream)" }} />opened</div>
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}><span style={{ width: 10, height: 10, borderRadius: "50%", border: "1.5px solid var(--gold-deep)", background: "var(--panel-2)" }} />weekly gift</div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 18, marginTop: 32, fontSize: 12, color: "var(--ink-soft)", padding: "16px 20px", background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 14 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 7 }}><span style={{ width: 10, height: 10, borderRadius: "50%", border: "1.5px solid var(--line)", background: "var(--panel)" }} />locked</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 7 }}><span style={{ width: 10, height: 10, borderRadius: "50%", border: "1.5px solid var(--gold-deep)", background: "var(--panel-2)", boxShadow: "0 0 6px var(--gold)" }} />today</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 7 }}><span style={{ width: 10, height: 10, borderRadius: "50%", border: "1.5px solid var(--gold-line)", background: "var(--cream)" }} />opened</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 7 }}><span style={{ width: 10, height: 10, borderRadius: "50%", border: "1.5px solid var(--gold-deep)", background: "var(--panel-2)" }} />weekly gift</div>
+        </div>
+
+        <div style={{ textAlign: "center", marginTop: 44, fontFamily: "Fraunces, Georgia, serif", fontStyle: "italic", fontSize: 14, color: "var(--ink-faint)" }}>
+          ✦ made with love, one day at a time ✦
         </div>
       </div>
 
       {modalDate ? (
         <div
           onClick={closeModal}
-          style={{ position: "fixed", inset: 0, background: "rgba(40,32,10,0.42)", display: "flex", alignItems: "center", justifyContent: "center", padding: 24, zIndex: 50 }}
+          style={{
+            position: "fixed", inset: 0,
+            background: "rgba(40,32,10,0.5)",
+            backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)",
+            display: "flex", alignItems: "center", justifyContent: "center", padding: 24, zIndex: 50,
+            animation: "fadeIn 0.2s ease both",
+          }}
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            style={{ background: "var(--cream)", borderRadius: 20, maxWidth: 420, width: "100%", padding: "32px 28px 28px", boxShadow: "0 20px 50px rgba(0,0,0,0.25)", border: modalDate.isGift ? "2px solid var(--gold-deep)" : "1px solid var(--line)" }}
+            style={{
+              background: "linear-gradient(165deg, var(--cream), var(--panel))",
+              borderRadius: 22, maxWidth: 440, width: "100%", padding: "34px 30px 28px",
+              boxShadow: "0 24px 60px rgba(0,0,0,0.28), 0 0 0 1px var(--gold-line)",
+              border: modalDate.isGift ? "2px solid var(--gold-deep)" : "1px solid var(--line)",
+              animation: "popIn 0.32s cubic-bezier(0.16, 1, 0.3, 1) both",
+              position: "relative",
+            }}
           >
-            <div style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 700, color: "var(--gold-deep)", marginBottom: 8 }}>
+            <div style={{ fontSize: 26, marginBottom: 10 }}>
+              {modalDate.isFinale ? "🎓" : modalDate.isGift ? "🎁" : "💌"}
+            </div>
+            <div style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: 700, color: "var(--gold-deep)", marginBottom: 6 }}>
               {modalDate.isFinale ? "exam day" : modalDate.isGift ? "weekly gift" : "note"}
             </div>
-            <div style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 18 }}>
+            <div style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 20, paddingBottom: 16, borderBottom: "1px solid var(--gold-line)" }}>
               {DOW[dowIndex(modalDate.dateStr)]}, {MONTH_NAMES[partsOf(modalDate.dateStr).m - 1]} {partsOf(modalDate.dateStr).d}
             </div>
-            <div style={{ fontFamily: "Fraunces, Georgia, serif", fontSize: 19, lineHeight: 1.55, marginBottom: 24 }}>
+            <div style={{ fontFamily: "Fraunces, Georgia, serif", fontSize: 19, lineHeight: 1.6, marginBottom: 26, color: "var(--ink)" }}>
               {modalLoading ? (
-                "..."
+                <span style={{ color: "var(--ink-faint)" }}>opening…</span>
               ) : modalDate.isFinale ? (
                 "this is it. everything you studied is already in you — today you just get to show it. walk in, breathe, and remember: you were built for exactly this morning."
               ) : !modalData?.ready ? (
@@ -252,7 +308,13 @@ export default function Home() {
             </div>
             <button
               onClick={closeModal}
-              style={{ fontWeight: 700, fontSize: 14, background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 12, padding: "10px 20px", cursor: "pointer" }}
+              style={{
+                fontWeight: 700, fontSize: 14, background: "var(--gold)", color: "#2E2200",
+                border: "none", borderRadius: 12, padding: "10px 22px", cursor: "pointer",
+                boxShadow: "0 4px 12px var(--shadow)", transition: "transform 0.15s ease",
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.transform = "translateY(-1px)")}
+              onMouseLeave={(e) => (e.currentTarget.style.transform = "translateY(0)")}
             >
               close
             </button>
