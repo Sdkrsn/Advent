@@ -1,69 +1,127 @@
-import Image from "next/image";
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+
+function GiftContent({ gift }) {
+  if (!gift) return null;
+  if (gift.type === "text") {
+    return <p className="font-serif text-xl leading-relaxed">{gift.text}</p>;
+  }
+  if (gift.type === "image") {
+    return (
+      <div className="flex flex-col gap-4">
+        <img src={gift.url} alt="" className="rounded-2xl w-full" />
+        {gift.text ? <p className="font-serif text-lg leading-relaxed">{gift.text}</p> : null}
+      </div>
+    );
+  }
+  if (gift.type === "audio") {
+    return (
+      <div className="flex flex-col gap-4">
+        <audio controls src={gift.url} className="w-full" />
+        {gift.text ? <p className="font-serif text-lg leading-relaxed">{gift.text}</p> : null}
+      </div>
+    );
+  }
+  if (gift.type === "video") {
+    return (
+      <div className="flex flex-col gap-4">
+        <video controls src={gift.url} className="w-full rounded-2xl" />
+        {gift.text ? <p className="font-serif text-lg leading-relaxed">{gift.text}</p> : null}
+      </div>
+    );
+  }
+  if (gift.type === "pdf") {
+    return (
+      <div className="flex flex-col gap-4">
+        <a
+          href={gift.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline font-semibold"
+          style={{ color: "var(--gold-deep)" }}
+        >
+          open your letter
+        </a>
+        {gift.text ? <p className="font-serif text-lg leading-relaxed">{gift.text}</p> : null}
+      </div>
+    );
+  }
+  return null;
+}
 
 export default function Home() {
+  const router = useRouter();
+  const [state, setState] = useState({ loading: true });
+  const tapCount = useRef(0);
+  const tapTimer = useRef(null);
+
+  useEffect(() => {
+    fetch("/api/today")
+      .then((r) => r.json())
+      .then((data) => setState({ loading: false, ...data }))
+      .catch(() => setState({ loading: false, ready: false }));
+  }, []);
+
+  function handleSecretTap() {
+    tapCount.current += 1;
+    if (tapTimer.current) clearTimeout(tapTimer.current);
+    tapTimer.current = setTimeout(() => {
+      tapCount.current = 0;
+    }, 1500);
+    if (tapCount.current >= 5) {
+      tapCount.current = 0;
+      router.push("/admin");
+    }
+  }
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <div className="min-h-screen flex items-center justify-center px-6 py-16">
+      <div className="w-full max-w-md">
+        <div
+          onClick={handleSecretTap}
+          className="w-3 h-3 rounded-full mb-10 mx-auto opacity-0"
+          aria-hidden="true"
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.js
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+
+        {state.loading ? (
+          <div className="text-center" style={{ color: "var(--ink-soft)" }}>
+            ...
+          </div>
+        ) : !state.ready ? (
+          <div
+            className="rounded-2xl p-8 text-center"
+            style={{ background: "var(--panel)", border: "1px solid var(--gold-line)" }}
           >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+            <p className="font-serif text-lg" style={{ color: "var(--ink-soft)" }}>
+              {state.isSunday
+                ? "something's coming for you tonight."
+                : "today's note isn't ready yet — check back tonight."}
+            </p>
+          </div>
+        ) : state.isSunday ? (
+          <div
+            className="rounded-2xl p-8"
+            style={{ background: "var(--panel)", border: "2px solid var(--gold-deep)" }}
           >
-            Documentation
-          </a>
-        </div>
-      </main>
+            <div
+              className="text-xs uppercase tracking-widest font-bold mb-4"
+              style={{ color: "var(--gold-deep)" }}
+            >
+              for you
+            </div>
+            <GiftContent gift={state.gift} />
+          </div>
+        ) : (
+          <div
+            className="rounded-2xl p-8"
+            style={{ background: "var(--panel)", border: "1px solid var(--gold-line)" }}
+          >
+            <p className="font-serif text-xl leading-relaxed">{state.message}</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
