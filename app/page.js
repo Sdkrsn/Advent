@@ -148,9 +148,10 @@ export default function Home() {
   return (
     <div style={{ minHeight: "100vh", paddingBottom: 60 }}>
       <div style={{ maxWidth: 880, margin: "0 auto", padding: "44px 24px 0" }}>
-        <div onClick={handleSecretTap} style={{ width: 12, height: 12, opacity: 0, cursor: "default" }} aria-hidden="true" />
-
-        <div style={{ fontSize: 12, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--ink-soft)", fontWeight: 700, marginBottom: 10 }}>
+        <div
+          onClick={handleSecretTap}
+          style={{ fontSize: 12, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--ink-soft)", fontWeight: 700, marginBottom: 10, width: "fit-content", cursor: "default", userSelect: "none" }}
+        >
           today
         </div>
 
