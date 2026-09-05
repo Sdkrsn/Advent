@@ -68,6 +68,12 @@ export default function Home() {
   const [modalLoading, setModalLoading] = useState(false);
   const tapCount = useRef(0);
   const tapTimer = useRef(null);
+  const peekTaps = useRef({});
+  const [peekPrompt, setPeekPrompt] = useState(null);
+  const [peekPassword, setPeekPassword] = useState("");
+  const [peekError, setPeekError] = useState("");
+  const [peekResult, setPeekResult] = useState(null);
+  const [peekLoading, setPeekLoading] = useState(false);
 
   useEffect(() => {
     setToday(nowInTz().dateStr);
@@ -156,6 +162,50 @@ export default function Home() {
     setModalData(null);
   }
 
+  function handleLockedTap(dateStr) {
+    const state = peekTaps.current[dateStr] || { count: 0, timer: null };
+    state.count += 1;
+    if (state.timer) clearTimeout(state.timer);
+    state.timer = setTimeout(() => { state.count = 0; }, 1500);
+    peekTaps.current[dateStr] = state;
+    if (state.count >= 5) {
+      state.count = 0;
+      setPeekPrompt(dateStr);
+      setPeekPassword("");
+      setPeekError("");
+      setPeekResult(null);
+    }
+  }
+
+  async function submitPeek() {
+    setPeekLoading(true);
+    setPeekError("");
+    try {
+      const res = await fetch("/api/admin/peek", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ date: peekPrompt, password: peekPassword }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setPeekError(data.error || "wrong password");
+        setPeekLoading(false);
+        return;
+      }
+      setPeekResult(data);
+    } catch {
+      setPeekError("something went wrong");
+    }
+    setPeekLoading(false);
+  }
+
+  function closePeek() {
+    setPeekPrompt(null);
+    setPeekPassword("");
+    setPeekError("");
+    setPeekResult(null);
+  }
+
   if (!today) return null;
 
   return (
@@ -238,7 +288,7 @@ export default function Home() {
                       key={d.dateStr}
                       className={cls.join(" ")}
                       style={{ animationDelay: `${Math.min(idxInMonth * 0.012, 0.4)}s` }}
-                      onClick={pastOrToday ? () => openDay(d) : undefined}
+                      onClick={pastOrToday ? () => openDay(d) : () => handleLockedTap(d.dateStr)}
                     >
                       <div className="n">{dayNum}</div>
                       <div className="d">{DOW[dowIndex(d.dateStr)]}</div>
@@ -318,6 +368,124 @@ export default function Home() {
             >
               close
             </button>
+          </div>
+        </div>
+      ) : null}
+
+      {peekPrompt ? (
+        <div
+          onClick={closePeek}
+          style={{
+            position: "fixed", inset: 0,
+            background: "rgba(40,32,10,0.5)",
+            backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)",
+            display: "flex", alignItems: "center", justifyContent: "center", padding: 24, zIndex: 60,
+            animation: "fadeIn 0.2s ease both",
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: "linear-gradient(165deg, var(--cream), var(--panel))",
+              borderRadius: 22, maxWidth: 420, width: "100%", padding: "30px 28px 26px",
+              boxShadow: "0 24px 60px rgba(0,0,0,0.28), 0 0 0 1px var(--gold-line)",
+              border: "1px solid var(--line)",
+              animation: "popIn 0.32s cubic-bezier(0.16, 1, 0.3, 1) both",
+            }}
+          >
+            <div style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: 700, color: "var(--gold-deep)", marginBottom: 14 }}>
+              admin check · {peekPrompt}
+            </div>
+
+            {!peekResult ? (
+              <>
+                <input
+                  type="password"
+                  value={peekPassword}
+                  onChange={(e) => setPeekPassword(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && submitPeek()}
+                  placeholder="password"
+                  autoFocus
+                  style={{ width: "100%", borderRadius: 8, padding: "10px 12px", border: "1px solid var(--gold-line)", background: "var(--panel)", color: "var(--ink)", marginBottom: 12, boxSizing: "border-box" }}
+                />
+                {peekError ? (
+                  <div style={{ fontSize: 13, color: "#b0402a", marginBottom: 12 }}>{peekError}</div>
+                ) : null}
+                <div style={{ display: "flex", gap: 10 }}>
+                  <button
+                    onClick={submitPeek}
+                    disabled={peekLoading}
+                    style={{ fontWeight: 700, fontSize: 14, background: "var(--gold)", color: "#2E2200", border: "none", borderRadius: 10, padding: "9px 18px", cursor: "pointer" }}
+                  >
+                    {peekLoading ? "checking…" : "check"}
+                  </button>
+                  <button
+                    onClick={closePeek}
+                    style={{ fontWeight: 600, fontSize: 14, background: "transparent", color: "var(--ink-soft)", border: "1px solid var(--line)", borderRadius: 10, padding: "9px 18px", cursor: "pointer" }}
+                  >
+                    cancel
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div style={{ fontSize: 14, marginBottom: 14 }}>
+                  status:{" "}
+                  <b style={{ color: peekResult.isLive ? "var(--gold-deep)" : "var(--ink-soft)" }}>
+                    {peekResult.isLive ? "live" : "not live"}
+                  </b>
+                  {peekResult.isSunday ? " · gift day" : ""}
+                </div>
+
+                <div style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 700, color: "var(--ink-soft)", marginBottom: 6 }}>
+                  live
+                </div>
+                {peekResult.live ? (
+                  peekResult.live.kind === "gift" ? (
+                    <div style={{ fontSize: 13, marginBottom: 14 }}>
+                      {peekResult.live.giftType} {peekResult.live.fileName ? `(${peekResult.live.fileName})` : ""}
+                      {peekResult.live.text ? <p style={{ marginTop: 6 }}>{peekResult.live.text}</p> : null}
+                      {peekResult.live.url ? (
+                        peekResult.live.giftType === "image" ? (
+                          <img src={peekResult.live.url} alt="" style={{ maxWidth: "100%", borderRadius: 8, marginTop: 8 }} />
+                        ) : (
+                          <a href={peekResult.live.url} target="_blank" rel="noopener noreferrer" style={{ display: "block", marginTop: 6, textDecoration: "underline" }}>
+                            open file
+                          </a>
+                        )
+                      ) : null}
+                    </div>
+                  ) : (
+                    <p style={{ fontSize: 13, marginBottom: 14 }}>{peekResult.live.text || "(empty)"}</p>
+                  )
+                ) : (
+                  <p style={{ fontSize: 13, color: "var(--ink-faint)", marginBottom: 14 }}>nothing published</p>
+                )}
+
+                <div style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 700, color: "var(--ink-soft)", marginBottom: 6 }}>
+                  draft
+                </div>
+                {peekResult.draft ? (
+                  peekResult.draft.kind === "gift" ? (
+                    <div style={{ fontSize: 13, marginBottom: 16 }}>
+                      {peekResult.draft.giftType} {peekResult.draft.fileName ? `(${peekResult.draft.fileName})` : ""}
+                      {peekResult.draft.text ? <p style={{ marginTop: 6 }}>{peekResult.draft.text}</p> : null}
+                    </div>
+                  ) : (
+                    <p style={{ fontSize: 13, marginBottom: 16 }}>{peekResult.draft.text || "(empty)"}</p>
+                  )
+                ) : (
+                  <p style={{ fontSize: 13, color: "var(--ink-faint)", marginBottom: 16 }}>no draft saved</p>
+                )}
+
+                <button
+                  onClick={closePeek}
+                  style={{ fontWeight: 700, fontSize: 14, background: "var(--gold)", color: "#2E2200", border: "none", borderRadius: 10, padding: "9px 18px", cursor: "pointer" }}
+                >
+                  close
+                </button>
+              </>
+            )}
           </div>
         </div>
       ) : null}

@@ -8,7 +8,9 @@ export const dynamic = "force-dynamic";
 export async function GET(req) {
   const { searchParams } = new URL(req.url);
   const date = searchParams.get("date");
-  if (!date || !isDateUnlocked(date)) {
+  const pw = searchParams.get("pw");
+  const adminBypass = !!pw && !!process.env.ADMIN_PASSWORD && pw === process.env.ADMIN_PASSWORD;
+  if (!date || (!adminBypass && !isDateUnlocked(date))) {
     return NextResponse.json({ error: "Not available yet" }, { status: 403 });
   }
 
