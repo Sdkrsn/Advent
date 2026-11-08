@@ -236,7 +236,7 @@ export default function Home() {
             </div>
           </div>
           <div style={{ textAlign: "right", fontSize: 14, color: "var(--ink-soft)", lineHeight: 1.6 }}>
-            exam day<br /><b style={{ color: "var(--ink)", fontFamily: "Fraunces, Georgia, serif", fontSize: 15 }}>Monday, December 14, 2026</b>
+            exam day<br /><b style={{ color: "var(--ink)", fontFamily: "Fraunces, Georgia, serif", fontSize: 15 }}>Wednesday, November 25, 2026</b>
           </div>
         </div>
 
@@ -257,7 +257,7 @@ export default function Home() {
           <ul style={{ margin: 0, paddingLeft: 20, display: "flex", flexDirection: "column", gap: 8 }}>
             <li style={{ fontSize: 14, lineHeight: 1.6 }}>a new box unlocks every day at <b style={{ color: "var(--gold-deep)" }}>7pm</b> — open it whenever you want after that</li>
             <li style={{ fontSize: 14, lineHeight: 1.6 }}>every <b style={{ color: "var(--gold-deep)" }}>Sunday</b> the box turns gold — that one's a real gift, not just a note</li>
-            <li style={{ fontSize: 14, lineHeight: 1.6 }}>the very last box opens on exam morning, December 14</li>
+            <li style={{ fontSize: 14, lineHeight: 1.6 }}>the very last box opens on exam morning, November 25</li>
           </ul>
         </div>
 
