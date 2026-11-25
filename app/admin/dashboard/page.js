@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { nowInTz, isSundayDate, addDaysToDateStr } from "@/lib/time";
+import { nowInTz, isSundayDate, addDaysToDateStr, EXAM_DATE } from "@/lib/time";
 
 export default function Dashboard() {
   const router = useRouter();
@@ -109,6 +109,8 @@ export default function Dashboard() {
   }
 
   const sunday = isSundayDate(date);
+  const finale = date === EXAM_DATE;
+  const giftDay = sunday || finale;
 
   return (
     <div style={{ minHeight: "100vh", padding: "40px 24px", background: "var(--cream)", color: "var(--ink)" }}>
@@ -133,12 +135,12 @@ export default function Dashboard() {
           <button onClick={() => setDate(addDaysToDateStr(date, 1))} style={{ padding: "6px 12px", borderRadius: 8, border: "1px solid var(--gold-line)", background: "var(--panel)", cursor: "pointer" }}>
             →
           </button>
-          <span style={{ fontSize: 13, color: "var(--ink-soft)" }}>{sunday ? "Sunday — gift day" : "daily message"}</span>
+          <span style={{ fontSize: 13, color: "var(--ink-soft)" }}>{finale ? "exam day — finale gift" : sunday ? "Sunday — gift day" : "daily message"}</span>
         </div>
 
-        {sunday ? (
+        {giftDay ? (
           <div style={{ background: "var(--panel)", border: "1px solid var(--gold-line)", borderRadius: 16, padding: 24, display: "flex", flexDirection: "column", gap: 16 }}>
-            <h2 style={{ fontWeight: 600 }}>gift for {date}</h2>
+            <h2 style={{ fontWeight: 600 }}>{finale ? "finale gift" : "gift"} for {date}</h2>
             <p style={{ fontSize: 12, color: "var(--ink-soft)" }}>
               Prep this any time — it stays hidden from her until this date, 7pm.
             </p>
