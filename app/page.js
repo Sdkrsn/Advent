@@ -346,10 +346,10 @@ export default function Home() {
             <div style={{ fontFamily: "Fraunces, Georgia, serif", fontSize: 19, lineHeight: 1.6, marginBottom: 26, color: "var(--ink)" }}>
               {modalLoading ? (
                 <span style={{ color: "var(--ink-faint)" }}>opening…</span>
-              ) : modalDate.isFinale ? (
-                "this is it. everything you studied is already in you — today you just get to show it. walk in, breathe, and remember: you were built for exactly this morning."
               ) : !modalData?.ready ? (
-                modalData?.isSunday ? "something's coming for you tonight." : "not ready yet — check back at 7pm."
+                modalDate.isFinale
+                  ? "this is it. everything you studied is already in you — today you just get to show it. walk in, breathe, and remember: you were built for exactly this morning."
+                  : modalData?.isSunday ? "something's coming for you tonight." : "not ready yet — check back at 7pm."
               ) : modalData.isSunday ? (
                 <GiftContent gift={modalData.gift} />
               ) : (
